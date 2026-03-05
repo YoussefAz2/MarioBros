@@ -6,17 +6,18 @@ interface MarioSprite2DProps {
     facingRight: React.MutableRefObject<boolean>;
     walking: React.MutableRefObject<boolean>;
 }
+import { assetPath } from '../../utils/assetPath';
 
 const TOTAL_FRAMES = 5;
 const FRAME_RATE = 10;
 
 // Paths to individually pre-split frame images
 const FRAME_PATHS = [
-    '/sprites/mario-1.png',
-    '/sprites/mario-2.png',
-    '/sprites/mario-3.png',
-    '/sprites/mario-4.png',
-    '/sprites/mario-5.png',
+    assetPath('/sprites/mario-1.png'),
+    assetPath('/sprites/mario-2.png'),
+    assetPath('/sprites/mario-3.png'),
+    assetPath('/sprites/mario-4.png'),
+    assetPath('/sprites/mario-5.png'),
 ];
 
 export default function MarioSprite2D({ facingRight, walking }: MarioSprite2DProps) {

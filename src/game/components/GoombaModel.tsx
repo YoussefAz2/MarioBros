@@ -11,6 +11,7 @@ import * as THREE from 'three'
 import React from 'react'
 import { useGLTF, useAnimations } from '@react-three/drei'
 import { GLTF } from 'three-stdlib'
+import { assetPath } from '../../utils/assetPath'
 
 type ActionName = 'Take 001'
 
@@ -43,7 +44,7 @@ type GLTFResult = GLTF & {
 
 export function Model(props: JSX.IntrinsicElements['group']) {
   const group = React.useRef<THREE.Group>(null)
-  const { nodes, materials, animations } = useGLTF('/models/goomba/animated_goomba_super_mario_bros.glb') as GLTFResult
+  const { nodes, materials, animations } = useGLTF(assetPath('/models/goomba/animated_goomba_super_mario_bros.glb')) as GLTFResult
   const { actions } = useAnimations(animations, group)
 
   React.useEffect(() => {
@@ -91,4 +92,4 @@ export function Model(props: JSX.IntrinsicElements['group']) {
   )
 }
 
-useGLTF.preload('/models/goomba/animated_goomba_super_mario_bros.glb')
+useGLTF.preload(assetPath('/models/goomba/animated_goomba_super_mario_bros.glb'))

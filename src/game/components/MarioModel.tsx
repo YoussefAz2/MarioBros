@@ -8,6 +8,7 @@ import React from 'react'
 import { useGLTF, useAnimations } from '@react-three/drei'
 import { GLTF } from 'three-stdlib'
 import * as THREE from 'three'
+import { assetPath } from '../../utils/assetPath'
 
 type GLTFResult = GLTF & {
   animations: THREE.AnimationClip[]
@@ -19,7 +20,7 @@ interface MarioModelProps {
 
 export function Model({ walking }: MarioModelProps) {
   const group = React.useRef<THREE.Group>(null)
-  const { scene, animations } = useGLTF('/models/mario_animated/scene.gltf') as GLTFResult
+  const { scene, animations } = useGLTF(assetPath('/models/mario_animated/scene.gltf')) as GLTFResult
   const { actions, names } = useAnimations(animations, group)
 
   // Debug: log animation names on first mount
@@ -90,4 +91,4 @@ export function Model({ walking }: MarioModelProps) {
   )
 }
 
-useGLTF.preload('/models/mario_animated/scene.gltf')
+useGLTF.preload(assetPath('/models/mario_animated/scene.gltf'))
