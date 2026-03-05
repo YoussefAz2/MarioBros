@@ -18,7 +18,7 @@ export default function LoginModal({ onClose }: LoginModalProps) {
     const handleAuth = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!email || !password) {
-            setError('Please enter both email and password.');
+            setError('Veuillez entrer un email et un mot de passe.');
             return;
         }
 
@@ -52,7 +52,7 @@ export default function LoginModal({ onClose }: LoginModalProps) {
             }
         } catch (err: any) {
             console.error('Auth error:', err);
-            setError(err.message || 'An error occurred during authentication.');
+            setError(err.message || 'Une erreur est survenue lors de l\'authentification.');
         } finally {
             setLoading(false);
         }
@@ -69,10 +69,10 @@ export default function LoginModal({ onClose }: LoginModalProps) {
                 </button>
 
                 <h2 className="text-3xl font-black text-white mb-2 tracking-tight uppercase italic">
-                    {isSignUp ? 'Create Account' : 'Login'}
+                    {isSignUp ? 'Créer un compte' : 'Connexion'}
                 </h2>
                 <p className="text-white/60 mb-8 text-sm">
-                    {isSignUp ? 'Join to publish and manage your levels.' : 'Sign in to manage your published levels.'}
+                    {isSignUp ? 'Inscrivez-vous pour publier et gérer vos niveaux.' : 'Connectez-vous pour gérer vos niveaux publiés.'}
                 </p>
 
                 {error && (
@@ -83,7 +83,7 @@ export default function LoginModal({ onClose }: LoginModalProps) {
 
                 <form onSubmit={handleAuth} className="space-y-4">
                     <div>
-                        <label className="block text-white/80 text-sm font-medium mb-2 uppercase tracking-wider">Email/Username</label>
+                        <label className="block text-white/80 text-sm font-medium mb-2 uppercase tracking-wider">Email / Pseudo</label>
                         <input
                             type="text"
                             value={email}
@@ -94,7 +94,7 @@ export default function LoginModal({ onClose }: LoginModalProps) {
                     </div>
 
                     <div>
-                        <label className="block text-white/80 text-sm font-medium mb-2 uppercase tracking-wider">Password</label>
+                        <label className="block text-white/80 text-sm font-medium mb-2 uppercase tracking-wider">Mot de passe</label>
                         <input
                             type="password"
                             value={password}
@@ -109,7 +109,7 @@ export default function LoginModal({ onClose }: LoginModalProps) {
                         disabled={loading}
                         className="w-full bg-[#e8c400] hover:bg-[#ffe53d] text-black font-black uppercase italic tracking-wider py-4 rounded-xl transition-all transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed mt-4 shadow-[0_0_20px_rgba(232,196,0,0.3)]"
                     >
-                        {loading ? 'Processing...' : (isSignUp ? 'Sign Up' : 'Login')}
+                        {loading ? 'Chargement...' : (isSignUp ? 'S\'inscrire' : 'Se connecter')}
                     </button>
                 </form>
 
@@ -121,7 +121,7 @@ export default function LoginModal({ onClose }: LoginModalProps) {
                         }}
                         className="text-white/50 hover:text-white text-sm transition-colors"
                     >
-                        {isSignUp ? 'Already have an account? Login' : "Don't have an account? Sign Up"}
+                        {isSignUp ? 'Déjà un compte ? Se connecter' : "Pas encore de compte ? S'inscrire"}
                     </button>
                 </div>
             </div>

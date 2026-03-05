@@ -4,7 +4,9 @@ import Marketplace from './Marketplace';
 import PublishModal from './PublishModal';
 import LoginModal from './LoginModal';
 import { supabase } from '../lib/supabase';
+import { dbService, ScoreData } from '../services/db';
 import { playDimension, initMusic, stopMusic } from '../utils/audio';
+import defaultLevelData from '../data/levelbase1.json';
 import { Coins, Trophy, RefreshCw, Hand, UploadCloud, Globe, Play, Settings, XCircle, User, LogOut, Clock, Lightbulb } from 'lucide-react';
 
 const BlockIcon = ({ type }: { type: EditorTool }) => {
@@ -119,15 +121,30 @@ const BlockIcon = ({ type }: { type: EditorTool }) => {
       return (
         <Lightbulb className="w-8 h-8 text-yellow-400" />
       );
+    case 'checkpoint':
+      return (
+        <svg viewBox="0 0 32 32" className="w-8 h-8 drop-shadow-md group-hover:drop-shadow-[0_0_8px_rgba(74,222,128,0.8)]">
+          <polygon points="16,2 30,16 16,30 2,16" fill="none" stroke="#4ade80" strokeWidth="2" />
+          <circle cx="16" cy="16" r="4" fill="#4ade80" />
+        </svg>
+      );
   }
 };
 
 export default function HUD() {
-  const { dimension, score, coins, timeLeft, decrementTime, gameState, setGameState, selectedBlockType, setSelectedBlockType, toggleDimension, resetLevel, isTransitioning, user, setUser } = useGameStore();
+  const { dimension, score, coins, timeElapsed, incrementTime, currentMapId, gameState, setGameState, selectedBlockType, setSelectedBlockType, toggleDimension, resetLevel, isTransitioning, user, setUser, clearCheckpoint } = useGameStore();
   const [showPublishModal, setShowPublishModal] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [scoreBlink, setScoreBlink] = useState(false);
   const [coinBlink, setCoinBlink] = useState(false);
+  const [topScores, setTopScores] = useState<ScoreData[]>([]);
+  const [hasSubmittedScore, setHasSubmittedScore] = useState(false);
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
 
   // Écouter les changements de session Auth
   useEffect(() => {
@@ -163,19 +180,35 @@ export default function HUD() {
   // Timer logic
   useEffect(() => {
     let timer: number;
-    if (gameState === 'PLAYING' || gameState === 'EDITOR') {
+    if (gameState === 'PLAYING') {
       timer = window.setInterval(() => {
-        decrementTime();
+        incrementTime();
       }, 1000);
     }
     return () => clearInterval(timer);
-  }, [gameState, decrementTime]);
+  }, [gameState, incrementTime]);
 
+  // Scoreboard logic on WIN
   useEffect(() => {
-    if (timeLeft <= 0 && gameState === 'PLAYING') {
-      resetLevel();
+    if (gameState === 'WIN' && currentMapId) {
+      if (user && !hasSubmittedScore) {
+        setHasSubmittedScore(true);
+        const username = user.email ? user.email.split('@')[0] : 'Player';
+        dbService.submitScore(currentMapId, timeElapsed, user.id, username)
+          .then(() => dbService.getTopScores(currentMapId))
+          .then(setTopScores)
+          .catch(err => {
+            console.error(err);
+            dbService.getTopScores(currentMapId).then(setTopScores).catch(console.error);
+          });
+      } else if (!hasSubmittedScore) {
+        dbService.getTopScores(currentMapId).then(setTopScores).catch(console.error);
+      }
+    } else if (gameState !== 'WIN') {
+      setHasSubmittedScore(false);
+      setTopScores([]);
     }
-  }, [timeLeft, gameState, resetLevel]);
+  }, [gameState, currentMapId, user, timeElapsed, hasSubmittedScore]);
 
   const blockTypes: { type: EditorTool, label: string, color: string }[] = [
     { type: 'brick', label: 'Brick', color: 'bg-[#c84c0c]' },
@@ -190,6 +223,7 @@ export default function HUD() {
     { type: 'spike', label: 'Spike', color: 'bg-red-700' },
     { type: 'platform', label: 'Platform', color: 'bg-gray-500' },
     { type: 'lamp', label: 'Lamp', color: 'bg-yellow-500' },
+    { type: 'checkpoint', label: 'Checkpt', color: 'bg-green-600' },
     { type: 'eraser', label: 'Eraser', color: 'bg-red-500' },
     { type: 'move', label: 'Move', color: 'bg-[#00aaff]' },
   ];
@@ -205,7 +239,8 @@ export default function HUD() {
   };
 
   const startGame = () => {
-    setGameState('PLAYING');
+    // Toujours recharger le niveau de base quand on clique "Jouer"
+    useGameStore.getState().loadMap(null, defaultLevelData as any);
     initMusic();
   };
 
@@ -252,50 +287,58 @@ export default function HUD() {
           <h2 className="text-3xl md:text-5xl text-[#049CD8] drop-shadow-[4px_4px_0_#000]">DIMENSION SHIFT</h2>
         </div>
 
-        <button
-          onClick={startGame}
-          className="mt-8 px-8 py-4 bg-[#43B047] text-white text-xl md:text-2xl border-4 border-white rounded-xl shadow-[0_0_20px_rgba(67,176,71,0.8)] hover:scale-110 hover:bg-[#328a36] transition-all pointer-events-auto"
-        >
-          START GAME
-        </button>
-
-        <button
-          onClick={() => setGameState('EDITOR')}
-          className="mt-6 px-6 py-3 bg-[#888888] text-white text-sm md:text-base border-4 border-white rounded-xl shadow-[0_0_10px_rgba(0,0,0,0.5)] hover:scale-110 hover:bg-[#666666] transition-all pointer-events-auto"
-        >
-          LEVEL EDITOR
-        </button>
-
-        <button
-          onClick={() => setGameState('MARKETPLACE')}
-          className="mt-6 px-6 py-3 bg-[#049CD8] text-white text-sm md:text-base border-4 border-white rounded-xl shadow-[0_0_10px_rgba(4,156,216,0.5)] hover:scale-110 hover:bg-[#037bb0] transition-all pointer-events-auto flex items-center gap-2"
-        >
-          <Globe className="w-5 h-5" />
-          MARKETPLACE
-        </button>
-
-        <div className="mt-8 pointer-events-auto">
-          {user ? (
-            <button
-              onClick={() => supabase.auth.signOut()}
-              className="px-4 py-2 bg-red-500/80 hover:bg-red-500 text-white rounded-lg flex items-center gap-2 text-sm transition-all"
-            >
-              <LogOut className="w-4 h-4" /> LOGOUT
-            </button>
-          ) : (
+        {!user ? (
+          <div className="flex flex-col items-center mt-8 pointer-events-auto">
             <button
               onClick={() => setShowLoginModal(true)}
-              className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white border border-white/20 rounded-lg flex items-center gap-2 text-sm transition-all"
+              className="px-10 py-5 bg-[#E52521] text-white text-xl md:text-2xl font-black tracking-widest border-4 border-white rounded-2xl shadow-[0_0_30px_rgba(229,37,33,0.8)] hover:scale-110 hover:bg-[#cc1f1c] transition-all flex items-center gap-4 animate-pulse uppercase"
             >
-              <User className="w-4 h-4" /> LOGIN
+              <User className="w-8 h-8" />
+              CONNEXION
             </button>
-          )}
-        </div>
+            <p className="mt-6 text-white/50 text-sm max-w-md text-center tracking-wide leading-relaxed">
+              Un compte est requis pour sauvegarder vos scores, créer des maps personnalisées et accéder au marketplace communautaire.
+            </p>
+          </div>
+        ) : (
+          <>
+            <button
+              onClick={startGame}
+              className="mt-8 px-8 py-4 bg-[#43B047] text-white text-xl md:text-2xl border-4 border-white rounded-xl shadow-[0_0_20px_rgba(67,176,71,0.8)] hover:scale-110 hover:bg-[#328a36] transition-all pointer-events-auto"
+            >
+              JOUER
+            </button>
+
+            <button
+              onClick={() => setGameState('EDITOR')}
+              className="mt-6 px-6 py-3 bg-[#888888] text-white text-sm md:text-base border-4 border-white rounded-xl shadow-[0_0_10px_rgba(0,0,0,0.5)] hover:scale-110 hover:bg-[#666666] transition-all pointer-events-auto"
+            >
+              ÉDITEUR DE NIVEAUX
+            </button>
+
+            <button
+              onClick={() => setGameState('MARKETPLACE')}
+              className="mt-6 px-6 py-3 bg-[#049CD8] text-white text-sm md:text-base border-4 border-white rounded-xl shadow-[0_0_10px_rgba(4,156,216,0.5)] hover:scale-110 hover:bg-[#037bb0] transition-all pointer-events-auto flex items-center gap-2"
+            >
+              <Globe className="w-5 h-5" />
+              MARKETPLACE
+            </button>
+
+            <div className="mt-8 pointer-events-auto">
+              <button
+                onClick={() => supabase.auth.signOut()}
+                className="px-4 py-2 bg-red-500/80 hover:bg-red-500 text-white rounded-lg flex items-center gap-2 text-sm transition-all shadow-[0_0_10px_rgba(239,68,68,0.3)]"
+              >
+                <LogOut className="w-4 h-4" /> DÉCONNEXION
+              </button>
+            </div>
+          </>
+        )}
 
         {showLoginModal && <LoginModal onClose={() => setShowLoginModal(false)} />}
 
         <p className="absolute bottom-8 text-white/70 text-xs text-center font-sans tracking-widest">
-          WASD/Arrows to move • Space to jump<br />Find the Dimension Rift to switch to 3D!
+          ZQSD/Flèches pour se déplacer • Espace pour sauter<br />Trouvez la Faille Dimensionnelle pour passer en 3D !
         </p>
       </div>
     );
@@ -319,12 +362,12 @@ export default function HUD() {
             </div>
           </div>
 
-          <div className={`bg-black/50 backdrop-blur-md px-6 py-3 rounded-2xl border-2 border-white/20 shadow-[0_4px_30px_rgba(0,0,0,0.5)] transition-colors flex flex-col items-center justify-center ${timeLeft < 30 ? 'border-red-500 shadow-[0_0_20px_#ff0000] animate-pulse' : ''}`}>
-            <p className={`text-xl font-black mb-1 flex items-center gap-2 drop-shadow-[2px_2px_0_#000] ${timeLeft < 30 ? 'text-red-500' : 'text-white'}`}>
-              <Clock className="w-5 h-5" /> {String(timeLeft).padStart(3, '0')}
+          <div className="bg-black/50 backdrop-blur-md px-6 py-3 rounded-2xl border-2 border-white/20 shadow-[0_4px_30px_rgba(0,0,0,0.5)] transition-colors flex flex-col items-center justify-center">
+            <p className="text-xl font-black mb-1 flex items-center gap-2 drop-shadow-[2px_2px_0_#000] text-white">
+              <Clock className="w-5 h-5" /> {formatTime(timeElapsed)}
             </p>
             <div className="px-3 py-1 rounded-full border-2 border-white/30 text-white/50 bg-black/80">
-              <p className="text-[10px] font-bold tracking-widest">TIME</p>
+              <p className="text-[10px] font-bold tracking-widest">TEMPS</p>
             </div>
           </div>
         </div>
@@ -337,13 +380,13 @@ export default function HUD() {
                 className="px-6 py-3 rounded-2xl pointer-events-auto border-2 bg-[#049CD8]/80 hover:bg-[#037bb0] backdrop-blur-md border-white/50 transition-all text-sm font-bold tracking-wider hover:scale-105 shadow-xl flex items-center gap-2"
               >
                 <UploadCloud className="w-4 h-4" />
-                PUBLISH LEVEL
+                PUBLIER LE NIVEAU
               </button>
               <button
                 onClick={toggleDimension}
                 className="px-6 py-3 rounded-2xl pointer-events-auto border-2 bg-purple-600/80 hover:bg-purple-500 backdrop-blur-md border-white/50 transition-all text-sm font-bold tracking-wider hover:scale-105 shadow-xl"
               >
-                🔄 SWITCH {dimension === '2D' ? '3D' : '2D'}
+                🔄 BASCULER {dimension === '2D' ? '3D' : '2D'}
               </button>
             </>
           )}
@@ -354,7 +397,7 @@ export default function HUD() {
               : 'bg-[#E52521]/80 hover:bg-[#cc1f1c] border-white/50'
               }`}
           >
-            {gameState === 'EDITOR' ? '▶ PLAY TEST' : '🛠 EDITOR'}
+            {gameState === 'EDITOR' ? '▶ TESTER' : '🛠 ÉDITEUR'}
           </button>
         </div>
       </div>
@@ -363,8 +406,8 @@ export default function HUD() {
       {gameState === 'PAUSE' && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/70 pointer-events-auto backdrop-blur-lg z-50 animate-in fade-in duration-200">
           <div className="bg-gradient-to-b from-black/90 to-black/70 p-12 rounded-3xl text-center border-4 border-white/30 shadow-[0_0_50px_rgba(0,0,0,0.8)] backdrop-blur-xl transform transition-all scale-100 hover:scale-[1.02]">
-            <h1 className="text-5xl md:text-6xl text-white mb-4 font-black tracking-widest drop-shadow-[4px_4px_0_#000]" style={{ fontFamily: "'Press Start 2P', cursive" }}>PAUSED</h1>
-            <p className="text-white/50 mb-12 italic font-sans tracking-wide">Take a breath, the dimensions will wait.</p>
+            <h1 className="text-5xl md:text-6xl text-white mb-4 font-black tracking-widest drop-shadow-[4px_4px_0_#000]" style={{ fontFamily: "'Press Start 2P', cursive" }}>PAUSE</h1>
+            <p className="text-white/50 mb-12 italic font-sans tracking-wide">Prenez une pause, les dimensions vous attendront.</p>
 
             <div className="flex flex-col gap-5">
               <button
@@ -372,7 +415,7 @@ export default function HUD() {
                 className="group flex items-center justify-center gap-3 bg-[#43B047] text-white px-8 py-4 rounded-2xl text-xl font-bold border-4 border-[#328a36] hover:bg-[#52d157] hover:border-[#43B047] hover:scale-105 transition-all shadow-[0_0_20px_rgba(67,176,71,0.5)]"
               >
                 <Play className="w-6 h-6 fill-current group-hover:animate-pulse" />
-                {useGameStore.getState().previousGameState === 'EDITOR' ? 'RESUME EDITOR' : 'RESUME GAME'}
+                {useGameStore.getState().previousGameState === 'EDITOR' ? 'REPRENDRE L\'ÉDITEUR' : 'REPRENDRE LA PARTIE'}
               </button>
 
               <button
@@ -380,15 +423,15 @@ export default function HUD() {
                 className="group flex items-center justify-center gap-3 bg-[#E52521] text-white px-8 py-4 rounded-2xl text-xl font-bold border-4 border-[#cc1f1c] hover:bg-[#ff3b38] hover:border-[#E52521] hover:scale-105 transition-all shadow-[0_0_20px_rgba(229,37,33,0.5)]"
               >
                 <Settings className="w-6 h-6 group-hover:rotate-90 transition-transform duration-300" />
-                LEVEL EDITOR
+                ÉDITEUR DE NIVEAUX
               </button>
 
               <button
-                onClick={() => { setGameState('MENU'); stopMusic(); }}
+                onClick={() => { clearCheckpoint(); setGameState('MENU'); stopMusic(); }}
                 className="group mt-4 flex items-center justify-center gap-2 bg-transparent text-white/70 hover:text-white px-8 py-3 rounded-2xl text-sm font-bold border-2 border-white/20 hover:border-white/50 transition-all"
               >
                 <XCircle className="w-4 h-4 group-hover:text-red-400 transition-colors" />
-                QUIT TO MENU
+                QUITTER AU MENU
               </button>
             </div>
           </div>
@@ -397,15 +440,45 @@ export default function HUD() {
 
       {/* Win Screen */}
       {gameState === 'WIN' && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/80 pointer-events-auto backdrop-blur-sm">
-          <div className="bg-[#049CD8] p-12 rounded-3xl text-center border-4 border-white shadow-[0_0_50px_rgba(4,156,216,0.8)]">
-            <h1 className="text-4xl md:text-6xl text-[#FBD000] mb-8 font-black tracking-tighter drop-shadow-[4px_4px_0_#000]" style={{ fontFamily: "'Press Start 2P', cursive" }}>COURSE CLEAR!</h1>
-            <p className="text-2xl md:text-3xl text-white mb-12 font-bold drop-shadow-[2px_2px_0_#000]">SCORE: {score}</p>
+        <div className="absolute inset-0 flex items-center justify-center bg-black/80 pointer-events-auto backdrop-blur-sm p-4 z-50">
+          <div className="bg-[#049CD8] p-8 md:p-12 rounded-3xl text-center border-4 border-white shadow-[0_0_50px_rgba(4,156,216,0.8)] max-w-2xl w-full max-h-screen overflow-y-auto">
+            <h1 className="text-3xl md:text-5xl text-[#FBD000] mb-4 font-black tracking-tighter drop-shadow-[4px_4px_0_#000]" style={{ fontFamily: "'Press Start 2P', cursive" }}>NIVEAU TERMINÉ !</h1>
+
+            <div className="flex justify-center gap-8 mb-8">
+              <p className="text-xl md:text-2xl text-white font-bold drop-shadow-[2px_2px_0_#000]">SCORE: {score}</p>
+              <p className="text-xl md:text-2xl text-[#FBD000] font-bold drop-shadow-[2px_2px_0_#000] flex items-center gap-2">
+                <Clock className="w-6 h-6" /> {formatTime(timeElapsed)}
+              </p>
+            </div>
+
+            {currentMapId && (
+              <div className="bg-black/30 rounded-xl p-4 mb-8 text-left border border-white/20">
+                <h2 className="text-white text-lg font-bold mb-4 flex items-center gap-2 border-b border-white/20 pb-2">
+                  <Trophy className="w-5 h-5 text-[#FBD000]" /> TOP 10 SPEEDRUN
+                </h2>
+                {topScores.length === 0 ? (
+                  <p className="text-white/50 text-sm italic text-center py-4">Chargement des scores...</p>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    {topScores.map((s, i) => (
+                      <div key={s.id} className={`flex justify-between items-center p-2 rounded ${i === 0 ? 'bg-yellow-500/20 border border-yellow-500/50' : i === 1 ? 'bg-gray-300/20 border border-gray-300/30' : i === 2 ? 'bg-orange-600/20 border border-orange-600/30' : ''}`}>
+                        <span className="text-white font-mono flex items-center gap-2">
+                          <span className="text-sm opacity-50 w-4">{i + 1}.</span>
+                          {s.username} {user?.id === s.user_id && <span className="text-xs bg-[#E52521] px-2 py-0.5 rounded-full ml-2">YOU</span>}
+                        </span>
+                        <span className="text-[#4ade80] font-bold font-mono">{formatTime(s.time_elapsed)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             <button
-              onClick={() => setGameState('MENU')}
+              onClick={() => { clearCheckpoint(); setGameState('MENU'); }}
               className="bg-[#E52521] text-white px-8 py-4 rounded-2xl text-xl font-bold border-4 border-white hover:bg-[#cc1f1c] hover:scale-110 transition-all drop-shadow-[2px_2px_0_#000]"
             >
-              MAIN MENU
+              MENU PRINCIPAL
             </button>
           </div>
         </div>
@@ -425,9 +498,9 @@ export default function HUD() {
               </button>
             ))}
             <div className="ml-4 pl-4 border-l-2 border-white/20 flex flex-col justify-center text-xs text-white/70 whitespace-nowrap gap-1 font-medium">
-              <p>Left Click + Drag: Build/Erase</p>
-              <p>Right Click: Orbit • Scroll: Zoom</p>
-              <p>Alt + Click: Pipette • Ctrl+Z: Undo</p>
+              <p>Clic gauche + Glisser : Construire/Effacer</p>
+              <p>Clic droit : Orbite • Molette : Zoom</p>
+              <p>Alt + Clic : Pipette • Ctrl+Z : Annuler</p>
             </div>
           </div>
         </div>
@@ -435,7 +508,7 @@ export default function HUD() {
 
       {gameState === 'PLAYING' && (
         <div className="absolute bottom-6 left-6 text-white/70 text-xs font-medium bg-black/40 px-4 py-2 rounded-full backdrop-blur-md">
-          <p>Controls: Arrows/WASD to move • Space to Jump</p>
+          <p>Contrôles : Flèches/ZQSD pour se déplacer • Espace pour sauter</p>
         </div>
       )}
 

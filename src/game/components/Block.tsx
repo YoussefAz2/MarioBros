@@ -1,7 +1,7 @@
 import { RigidBody } from '@react-three/rapier';
 import { useMemo, useState, useRef } from 'react';
 import { createBrickTexture, createQuestionTexture } from '../../utils/textures';
-import { useGameStore } from '../../store/useGameStore';
+import { useGameStore, BlockType } from '../../store/useGameStore';
 import { ThreeEvent, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { playBump, playBreak, playCoin } from '../../utils/audio';
@@ -9,7 +9,7 @@ import { playBump, playBreak, playCoin } from '../../utils/audio';
 interface BlockProps {
   id?: string;
   position: [number, number, number];
-  type?: 'brick' | 'ground' | 'question' | 'rift' | 'goomba' | 'pushable' | 'coin' | 'flag';
+  type?: BlockType;
 }
 
 export default function Block({ id, position, type = 'brick' }: BlockProps) {

@@ -3,7 +3,7 @@ import { useKeyboardControls, OrbitControls } from '@react-three/drei';
 import { useGameStore } from '../../store/useGameStore';
 import { playerPosRef } from '../components/Player';
 import * as THREE from 'three';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export default function CameraController() {
   const dimension = useGameStore(s => s.dimension);
@@ -21,6 +21,22 @@ export default function CameraController() {
   const transitionSpin = useRef(0);
   const prevGameState = useRef(gameState);
   const orbitControlsRef = useRef<any>(null);
+  const [isAltDown, setIsAltDown] = useState(false);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => { if (e.key === 'Alt') setIsAltDown(true); };
+    const onKeyUp = (e: KeyboardEvent) => { if (e.key === 'Alt') setIsAltDown(false); };
+    const onBlur = () => setIsAltDown(false);
+
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+    window.addEventListener('blur', onBlur);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+      window.removeEventListener('blur', onBlur);
+    };
+  }, []);
 
   // Handle window resize for cameras
   useEffect(() => {
@@ -69,8 +85,8 @@ export default function CameraController() {
     if (gameState === 'MENU') {
       const t = state.clock.elapsedTime * 0.2;
       const radius = 25;
-      perspCamera.current.position.set(Math.cos(t) * radius + 15, 10, Math.sin(t) * radius);
-      perspCamera.current.lookAt(15, 2, 0);
+      perspCamera.current.position.set(Math.cos(t) * radius + 40, 10, Math.sin(t) * radius);
+      perspCamera.current.lookAt(40, 2, 0);
       perspCamera.current.updateProjectionMatrix();
       return;
     }
@@ -162,20 +178,21 @@ export default function CameraController() {
     }
   });
 
-  return (
+  return gameState === 'EDITOR' ? (
     <OrbitControls
       ref={orbitControlsRef}
       camera={camera}
-      makeDefault
       enableDamping
       dampingFactor={0.05}
-      enabled={gameState === 'EDITOR'}
-      enableRotate={gameState === 'EDITOR'}
+      enabled={true}
+      enableRotate={true}
+      enableZoom={!isAltDown}
+      enablePan={true}
       mouseButtons={{
-        LEFT: undefined as unknown as THREE.MOUSE, // Disable left click rotation so we can build
+        LEFT: undefined as unknown as THREE.MOUSE,
         MIDDLE: THREE.MOUSE.PAN,
-        RIGHT: THREE.MOUSE.ROTATE // Right click to orbit
+        RIGHT: THREE.MOUSE.ROTATE
       }}
     />
-  );
+  ) : null;
 }

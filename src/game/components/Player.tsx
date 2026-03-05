@@ -30,12 +30,21 @@ export default function Player() {
   useEffect(() => {
     if (body.current) {
       const state = useGameStore.getState();
-      const spawnBlocks = state.blocks.filter(b => b.type === 'spawn');
-      const spawnBlock = spawnBlocks.length > 0 ? spawnBlocks[spawnBlocks.length - 1] : null;
 
-      const spawnX = spawnBlock ? spawnBlock.position[0] : 0;
-      const spawnY = spawnBlock ? spawnBlock.position[1] + 2 : 5; // Hauteur relative au bloc de spawn
-      const spawnZ = spawnBlock ? spawnBlock.position[2] : 0;
+      let spawnX = 0, spawnY = 5, spawnZ = 0;
+
+      if (state.lastCheckpoint) {
+        spawnX = state.lastCheckpoint[0];
+        spawnY = state.lastCheckpoint[1] + 1; // Respawn légèrement au-dessus du Checkpoint
+        spawnZ = state.lastCheckpoint[2];
+      } else {
+        const spawnBlocks = state.blocks.filter(b => b.type === 'spawn');
+        const spawnBlock = spawnBlocks.length > 0 ? spawnBlocks[spawnBlocks.length - 1] : null;
+
+        spawnX = spawnBlock ? spawnBlock.position[0] : 0;
+        spawnY = spawnBlock ? spawnBlock.position[1] + 2 : 5; // Hauteur relative au bloc de spawn
+        spawnZ = spawnBlock ? spawnBlock.position[2] : 0;
+      }
 
       body.current.setTranslation({ x: spawnX, y: spawnY, z: spawnZ }, true);
       body.current.setLinvel({ x: 0, y: 0, z: 0 }, true);
@@ -45,10 +54,11 @@ export default function Player() {
   useFrame(() => {
     if (!body.current) return;
 
-    if (gameState !== 'PLAYING') {
+    if (gameState === 'EDITOR') {
       body.current.setLinvel({ x: 0, y: 0, z: 0 }, true);
       return;
     }
+    if (gameState !== 'PLAYING') return;
 
     const linvel = body.current.linvel();
     const pos = body.current.translation();
@@ -176,11 +186,13 @@ export default function Player() {
     >
       <CapsuleCollider args={[0.3, 0.3]} position={[0, 0, 0]} />
       <group position={[0, -0.1, 0]}>
-        {dimension === '2D' ? (
+        {/* Les deux modèles sont toujours rendus pour éviter le freeze au premier switch */}
+        <group visible={dimension === '2D'}>
           <MarioSprite2D facingRight={facingRight} walking={isWalking} />
-        ) : (
+        </group>
+        <group visible={dimension === '3D'}>
           <Mario3D walking={isWalking} facingRight={facingRight} velocityX={velocityX} velocityZ={velocityZ} />
-        )}
+        </group>
       </group>
     </RigidBody>
   );

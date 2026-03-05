@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type BlockType = 'brick' | 'ground' | 'question' | 'rift' | 'goomba' | 'pushable' | 'coin' | 'flag' | 'spawn' | 'spike' | 'platform' | 'lamp';
+export type BlockType = 'brick' | 'ground' | 'question' | 'rift' | 'goomba' | 'pushable' | 'coin' | 'flag' | 'spawn' | 'spike' | 'platform' | 'lamp' | 'checkpoint';
 export type EditorTool = BlockType | 'eraser' | 'move';
 
 export interface BlockData {
@@ -17,18 +17,22 @@ interface GameState {
   isPublishing: boolean;
   score: number;
   coins: number;
-  timeLeft: number;
+  timeElapsed: number;
+  currentMapId: string | number | null;
   blocks: BlockData[];
   history: BlockData[][];
   selectedBlockType: EditorTool;
   movingBlock: BlockData | null;
+  buildDepth: number;
   resetKey: number;
   user: any | null;
+  lastCheckpoint: [number, number, number] | null;
+  checkpointDimension: '2D' | '3D' | null;
 
   toggleDimension: () => void;
   setGameState: (state: 'MENU' | 'PLAYING' | 'EDITOR' | 'WIN' | 'PAUSE' | 'MARKETPLACE') => void;
   addCoin: () => void;
-  decrementTime: () => void;
+  incrementTime: () => void;
   addBlock: (block: Omit<BlockData, 'id'>) => void;
   addBlocks: (blocks: Omit<BlockData, 'id'>[]) => void;
   removeBlock: (id: string) => void;
@@ -36,40 +40,19 @@ interface GameState {
   updateBlock: (id: string, type: BlockType) => void;
   setSelectedBlockType: (type: EditorTool) => void;
   setMovingBlock: (block: BlockData | null) => void;
+  setBuildDepth: (depth: number) => void;
   resetLevel: () => void;
-  loadMap: (blocks: BlockData[]) => void;
+  loadMap: (id: string | number | null, blocks: BlockData[]) => void;
   undo: () => void;
   setUser: (user: any | null) => void;
   setIsPublishing: (v: boolean) => void;
+  setCheckpoint: (pos: [number, number, number], dim: '2D' | '3D') => void;
+  clearCheckpoint: () => void;
 }
 
-const defaultBlocks: BlockData[] = [
-  ...Array.from({ length: 40 }).flatMap((_, i) =>
-    Array.from({ length: 7 }).map((_, j) => ({
-      id: `floor-${i - 10}-${j - 3}`,
-      position: [i - 10, -1, j - 3] as [number, number, number],
-      type: 'ground' as BlockType
-    }))
-  ),
-  { id: 'b1', position: [3, 0, 0], type: 'brick' },
-  { id: 'b2', position: [4, 0, 0], type: 'brick' },
-  { id: 'b3', position: [4, 1, 0], type: 'brick' },
-  { id: 'q1', position: [7, 3, 0], type: 'question' },
-  { id: 'b4', position: [8, 3, 0], type: 'brick' },
-  { id: 'q2', position: [9, 3, 0], type: 'question' },
-  { id: 'g1', position: [11, 2, 0], type: 'goomba' },
-  { id: 'r1', position: [14, 1, 0], type: 'rift' },
-  { id: 'q3', position: [19, 0, 2], type: 'question' },
-  { id: 'b5', position: [22, 0, 0], type: 'brick' },
-  { id: 'b6', position: [22, 1, 0], type: 'brick' },
-  { id: 'b7', position: [22, 2, 0], type: 'brick' },
-  { id: 'g2', position: [20, 2, 0], type: 'goomba' },
-  { id: 'p1', position: [15, 0, 0], type: 'pushable' },
-  { id: 'c1', position: [4, 4, 0], type: 'coin' },
-  { id: 'c2', position: [6, 4, 0], type: 'coin' },
-  { id: 'f1', position: [28, 0, 0], type: 'flag' },
-  { id: 's1', position: [0, 0, 0], type: 'spawn' },
-];
+// Niveau de base créé par l'utilisateur ("levelbase1")
+import levelBase1Data from '../data/levelbase1.json';
+const defaultBlocks: BlockData[] = levelBase1Data as BlockData[];
 
 export const useGameStore = create<GameState>((set) => ({
   dimension: '2D',
@@ -79,13 +62,17 @@ export const useGameStore = create<GameState>((set) => ({
   previousGameState: null,
   score: 0,
   coins: 0,
-  timeLeft: 300,
+  timeElapsed: 0,
+  currentMapId: null,
   blocks: defaultBlocks,
   history: [],
   selectedBlockType: 'brick',
   movingBlock: null,
+  buildDepth: 0,
   resetKey: 0,
   user: null,
+  lastCheckpoint: null,
+  checkpointDimension: null,
 
   toggleDimension: () => {
     set({ isTransitioning: true });
@@ -104,13 +91,7 @@ export const useGameStore = create<GameState>((set) => ({
     return { gameState: newState };
   }),
   addCoin: () => set((state) => ({ coins: state.coins + 1, score: state.score + 100 })),
-  decrementTime: () => set((state) => {
-    if (state.timeLeft <= 0) {
-      // Return state as is, triggering death is handled in HUD effect
-      return state;
-    }
-    return { timeLeft: state.timeLeft - 1 };
-  }),
+  incrementTime: () => set((state) => ({ timeElapsed: state.timeElapsed + 1 })),
   addBlock: (block) => set((state) => {
     // Règle exclusive : Un seul Spawn Point par niveau
     const newBlocks = block.type === 'spawn'
@@ -181,23 +162,26 @@ export const useGameStore = create<GameState>((set) => ({
     return { selectedBlockType: type, movingBlock: null };
   }),
   setMovingBlock: (block) => set({ movingBlock: block }),
+  setBuildDepth: (depth) => set({ buildDepth: depth }),
   resetLevel: () => set((state) => ({
     score: 0,
     coins: 0,
-    timeLeft: 300,
+    timeElapsed: 0,
     resetKey: state.resetKey + 1,
     gameState: 'PLAYING',
-    dimension: '2D'
+    dimension: state.checkpointDimension || '2D'
   })),
-  loadMap: (blocks) => set((state) => ({
+  loadMap: (id, blocks) => set((state) => ({
     history: [...state.history, state.blocks].slice(-50),
     blocks,
     score: 0,
     coins: 0,
-    timeLeft: 300,
+    timeElapsed: 0,
+    currentMapId: id,
     resetKey: state.resetKey + 1,
     gameState: 'PLAYING',
-    dimension: '2D'
+    dimension: '2D',
+    lastCheckpoint: null
   })),
   undo: () => set((state) => {
     if (state.history.length === 0) return state;
@@ -207,4 +191,6 @@ export const useGameStore = create<GameState>((set) => ({
   }),
   setUser: (user) => set({ user }),
   setIsPublishing: (v) => set({ isPublishing: v }),
+  setCheckpoint: (pos, dim) => set({ lastCheckpoint: pos, checkpointDimension: dim }),
+  clearCheckpoint: () => set({ lastCheckpoint: null, checkpointDimension: null }),
 }));

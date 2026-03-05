@@ -22,7 +22,7 @@ export default function EditMapModal({ map, onClose, onSuccess }: EditMapModalPr
         const file = e.target.files?.[0];
         if (file) {
             if (!file.type.startsWith('image/')) {
-                setError('Please select an image file (JPG/PNG).');
+                setError('Veuillez sélectionner un fichier image (JPG/PNG).');
                 return;
             }
             const reader = new FileReader();
@@ -36,7 +36,7 @@ export default function EditMapModal({ map, onClose, onSuccess }: EditMapModalPr
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!title) {
-            setError('Title is required.');
+            setError('Le titre est obligatoire.');
             return;
         }
 
@@ -57,7 +57,7 @@ export default function EditMapModal({ map, onClose, onSuccess }: EditMapModalPr
             }, 1500);
         } catch (err) {
             console.error(err);
-            setError('An error occurred while saving.');
+            setError('Une erreur est survenue lors de la sauvegarde.');
         } finally {
             setLoading(false);
         }
@@ -75,7 +75,7 @@ export default function EditMapModal({ map, onClose, onSuccess }: EditMapModalPr
 
                 <div className="flex items-center gap-3 mb-8">
                     <Save className="w-8 h-8 text-[#43B047]" />
-                    <h2 className="text-2xl font-black text-white tracking-wider uppercase italic">Edit Level</h2>
+                    <h2 className="text-2xl font-black text-white tracking-wider uppercase italic">Modifier le niveau</h2>
                 </div>
 
                 {success ? (
@@ -85,22 +85,22 @@ export default function EditMapModal({ map, onClose, onSuccess }: EditMapModalPr
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                             </svg>
                         </div>
-                        <h3 className="text-xl font-bold text-white mb-2">Map Updated!</h3>
-                        <p className="text-white/60">Your changes have been saved.</p>
+                        <h3 className="text-xl font-bold text-white mb-2">Map mise à jour !</h3>
+                        <p className="text-white/60">Vos modifications ont été enregistrées.</p>
                     </div>
                 ) : (
                     <form onSubmit={handleSave} className="flex flex-col gap-5">
                         <div className="relative w-full h-32 rounded-xl overflow-hidden border-2 border-white/20 bg-black group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
                             {previewImage ? (
-                                <img src={previewImage} alt="Map Preview" className="w-full h-full object-cover opacity-80 group-hover:opacity-50 transition-opacity" />
+                                <img src={previewImage} alt="Aperçu de la map" className="w-full h-full object-cover opacity-80 group-hover:opacity-50 transition-opacity" />
                             ) : (
                                 <div className="w-full h-full flex flex-col items-center justify-center text-white/40 group-hover:text-white/80 transition-colors">
                                     <ImageIcon className="w-8 h-8 mb-2" />
-                                    <span className="text-xs font-bold uppercase tracking-wider">No Thumbnail</span>
+                                    <span className="text-xs font-bold uppercase tracking-wider">Pas de miniature</span>
                                 </div>
                             )}
                             <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40">
-                                <span className="text-white font-bold text-sm tracking-widest uppercase">Change Image</span>
+                                <span className="text-white font-bold text-sm tracking-widest uppercase">Changer l'image</span>
                             </div>
                             <input
                                 type="file"
@@ -112,7 +112,7 @@ export default function EditMapModal({ map, onClose, onSuccess }: EditMapModalPr
                         </div>
 
                         <div>
-                            <label className="block text-white/70 text-sm font-bold mb-2">Map Title *</label>
+                            <label className="block text-white/70 text-sm font-bold mb-2">Titre de la map *</label>
                             <input
                                 type="text"
                                 value={title}
@@ -131,7 +131,7 @@ export default function EditMapModal({ map, onClose, onSuccess }: EditMapModalPr
                                 maxLength={150}
                                 rows={3}
                                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-[#43B047] transition-all resize-none"
-                                placeholder="A fun level with many jumps..."
+                                placeholder="Un niveau fun avec plein de sauts..."
                             />
                         </div>
 
@@ -146,7 +146,7 @@ export default function EditMapModal({ map, onClose, onSuccess }: EditMapModalPr
                             disabled={loading}
                             className="w-full bg-[#43B047] hover:bg-[#52d157] text-white font-black uppercase tracking-wider py-4 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed mt-2 shadow-[0_0_20px_rgba(67,176,71,0.3)] hover:scale-[1.02] active:scale-[0.98]"
                         >
-                            {loading ? 'SAVING...' : 'SAVE CHANGES'}
+                            {loading ? 'SAUVEGARDE...' : 'ENREGISTRER'}
                         </button>
                     </form>
                 )}

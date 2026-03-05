@@ -44,19 +44,29 @@ export default function Enemy({ id, position }: { id?: string, position: [number
 
     const isPlaying = gameState === 'PLAYING';
 
-    body.current.setGravityScale(isPlaying ? 1 : 0, false);
-
-    if (!isPlaying) {
+    if (gameState === 'EDITOR') {
+      body.current.setGravityScale(0, false);
       body.current.setLinvel({ x: 0, y: 0, z: 0 }, true);
       body.current.setTranslation(new THREE.Vector3(...position), true);
       return;
     }
+
+    body.current.setGravityScale(isPlaying ? 1 : 0, false);
+    if (!isPlaying) return;
 
     const linvel = body.current.linvel();
     const pos = body.current.translation();
 
     if (pos.y < -10) {
       useGameStore.getState().resetLevel();
+      return;
+    }
+
+    // Optimization & Gameplay: Only move if player is nearby (within 15 blocks)
+    const distToPlayerX = Math.abs(pos.x - playerPosRef.current.x);
+    if (distToPlayerX > 15) {
+      body.current.setLinvel({ x: 0, y: linvel.y, z: 0 }, true);
+      isWalking.current = false;
       return;
     }
 

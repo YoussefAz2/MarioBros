@@ -12,12 +12,14 @@ import SpawnPoint from '../components/SpawnPoint';
 import Spike from '../components/Spike';
 import MovingPlatform from '../components/MovingPlatform';
 import Lamp from '../components/Lamp';
+import Checkpoint from '../components/Checkpoint';
 import Background from '../components/Background';
 
 export default function Level1() {
   const blocks = useGameStore(s => s.blocks);
   const gameState = useGameStore(s => s.gameState);
   const isPublishing = useGameStore(s => s.isPublishing);
+  const buildDepth = useGameStore(s => s.buildDepth);
 
   return (
     <>
@@ -28,8 +30,10 @@ export default function Level1() {
         <>
           <EditorCursor />
           <group name="gridHelper">
+            {/* Grille au sol fixe */}
             <gridHelper args={[100, 100, 0xffffff, 0x555555]} position={[0, -0.5, 0]} />
-            <gridHelper args={[100, 100, 0xffffff, 0x555555]} position={[0, 0, -0.5]} rotation={[Math.PI / 2, 0, 0]} />
+            {/* Grille verticale Z dynamique (Couleur Bleu Holographique/Ciel) */}
+            <gridHelper args={[100, 100, 0x00aaff, 0x004488]} position={[0, 0, buildDepth]} rotation={[Math.PI / 2, 0, 0]} />
           </group>
         </>
       )}
@@ -61,6 +65,9 @@ export default function Level1() {
         }
         if (block.type === 'lamp') {
           return <Lamp key={block.id} id={block.id} position={block.position} />;
+        }
+        if (block.type === 'checkpoint') {
+          return <Checkpoint key={block.id} position={block.position} />;
         }
         return <Block key={block.id} id={block.id} position={block.position} type={block.type} />;
       })}

@@ -42,7 +42,7 @@ export default function PublishModal({ onClose }: PublishModalProps) {
   const handlePublish = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title) {
-      setError('Title is required.');
+      setError('Le titre est obligatoire.');
       return;
     }
 
@@ -60,7 +60,7 @@ export default function PublishModal({ onClose }: PublishModalProps) {
         title,
         description,
         author: displayAuthor,
-        data: blocks,
+        data: JSON.stringify(blocks),
         image: previewImage
       });
 
@@ -68,9 +68,9 @@ export default function PublishModal({ onClose }: PublishModalProps) {
       setTimeout(() => {
         onClose();
       }, 2000);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      setError('An error occurred while publishing.');
+      setError(err?.message || JSON.stringify(err) || 'Une erreur est survenue lors de la publication.');
     } finally {
       setLoading(false);
     }
@@ -88,7 +88,7 @@ export default function PublishModal({ onClose }: PublishModalProps) {
 
         <div className="flex items-center gap-3 mb-8">
           <UploadCloud className="w-8 h-8 text-[#049CD8]" />
-          <h2 className="text-2xl font-black text-white tracking-wider" style={{ fontFamily: "'Press Start 2P', cursive" }}>PUBLISH</h2>
+          <h2 className="text-2xl font-black text-white tracking-wider" style={{ fontFamily: "'Press Start 2P', cursive" }}>PUBLIER</h2>
         </div>
 
         {success ? (
@@ -98,24 +98,24 @@ export default function PublishModal({ onClose }: PublishModalProps) {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <h3 className="text-xl font-bold text-white mb-2">Map Published!</h3>
-            <p className="text-white/60">Your map is now available in the Marketplace.</p>
+            <h3 className="text-xl font-bold text-white mb-2">Map publiée !</h3>
+            <p className="text-white/60">Votre map est maintenant disponible dans le Marketplace.</p>
           </div>
         ) : (
           <form onSubmit={handlePublish} className="flex flex-col gap-5">
             {previewImage && (
               <div className="w-full h-32 rounded-xl overflow-hidden border-2 border-white/20 mb-2">
-                <img src={previewImage} alt="Map Preview" className="w-full h-full object-cover" />
+                <img src={previewImage} alt="Aperçu de la map" className="w-full h-full object-cover" />
               </div>
             )}
             <div>
-              <label className="block text-white/70 text-sm font-bold mb-2">Map Title *</label>
+              <label className="block text-white/70 text-sm font-bold mb-2">Titre de la map *</label>
               <input
                 type="text"
                 value={title}
                 onChange={e => setTitle(e.target.value)}
                 className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#049CD8] transition-colors"
-                placeholder="Super Awesome Level"
+                placeholder="Mon super niveau"
                 maxLength={50}
                 required
               />
@@ -128,7 +128,7 @@ export default function PublishModal({ onClose }: PublishModalProps) {
                 value={description}
                 onChange={e => setDescription(e.target.value)}
                 className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#049CD8] transition-colors resize-none h-24"
-                placeholder="Tell players what to expect..."
+                placeholder="Décrivez votre niveau aux joueurs..."
                 maxLength={200}
               />
             </div>
@@ -145,7 +145,7 @@ export default function PublishModal({ onClose }: PublishModalProps) {
               ) : (
                 <>
                   <UploadCloud className="w-5 h-5" />
-                  PUBLISH TO MARKETPLACE
+                  PUBLIER SUR LE MARKETPLACE
                 </>
               )}
             </button>

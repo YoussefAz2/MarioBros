@@ -46,6 +46,7 @@ export default function EditorCursor() {
 
   useEffect(() => {
     const onPointerDown = (e: PointerEvent) => {
+      isAltDownRef.current = e.altKey;
       if (e.target instanceof HTMLCanvasElement) {
         const state = useGameStore.getState();
         if (state.selectedBlockType === 'move' && e.button === 0) {
@@ -73,7 +74,8 @@ export default function EditorCursor() {
       }
     };
 
-    const onPointerUp = () => {
+    const onPointerUp = (e: PointerEvent) => {
+      isAltDownRef.current = e.altKey;
       if (isDraggingRef.current && dragButtonRef.current === 0 && dragStartPosRef.current) {
         const state = useGameStore.getState();
         const isEraser = state.selectedBlockType === 'eraser';
@@ -133,21 +135,62 @@ export default function EditorCursor() {
     };
 
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Alt') isAltDownRef.current = true;
+      if (e.key === 'Alt') {
+        e.preventDefault();
+        isAltDownRef.current = true;
+      }
+      const state = useGameStore.getState();
+      if (state.gameState === 'EDITOR') {
+        if (e.key === 'q' || e.key === 'Q') state.setBuildDepth(state.buildDepth - 1);
+        if (e.key === 'e' || e.key === 'E') state.setBuildDepth(state.buildDepth + 1);
+      }
     };
     const onKeyUp = (e: KeyboardEvent) => {
       if (e.key === 'Alt') isAltDownRef.current = false;
+    };
+    let lastWheelTime = 0;
+    const onWheel = (e: WheelEvent) => {
+      isAltDownRef.current = e.altKey;
+      const state = useGameStore.getState();
+      if (isAltDownRef.current && state.gameState === 'EDITOR') {
+        const now = performance.now();
+        if (now - lastWheelTime > 50) {
+          if (e.deltaY > 0) state.setBuildDepth(state.buildDepth + 1);
+          else state.setBuildDepth(state.buildDepth - 1);
+          lastWheelTime = now;
+        }
+      }
+    };
+
+    const onPointerCancel = () => {
+      isDraggingRef.current = false;
+      dragButtonRef.current = -1;
+      dragStartPosRef.current = null;
+      dragStartNormalRef.current = null;
+      lockedDragNormalRef.current = null;
+      previewBlocksRef.current = [];
+      if (instancedMeshRef.current) instancedMeshRef.current.count = 0;
+    };
+    const onBlur = () => {
+      isAltDownRef.current = false;
+      onPointerCancel();
     };
 
     window.addEventListener('pointerdown', onPointerDown);
     window.addEventListener('pointerup', onPointerUp);
     window.addEventListener('keydown', onKeyDown);
     window.addEventListener('keyup', onKeyUp);
+    window.addEventListener('wheel', onWheel);
+    window.addEventListener('pointercancel', onPointerCancel);
+    window.addEventListener('blur', onBlur);
     return () => {
       window.removeEventListener('pointerdown', onPointerDown);
       window.removeEventListener('pointerup', onPointerUp);
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
+      window.removeEventListener('wheel', onWheel);
+      window.removeEventListener('pointercancel', onPointerCancel);
+      window.removeEventListener('blur', onBlur);
     };
   }, []);
 
@@ -226,18 +269,20 @@ export default function EditorCursor() {
       }
     } else {
       // Normal raycast when not dragging
-      const intersects = raycaster.intersectObjects(scene.children, true);
+      let bestDist = Infinity;
       let buildPos = new THREE.Vector3();
       let erasePos = new THREE.Vector3();
-      let found = false;
+      let foundType = 'none';
 
+      // 1. Raycast Blocks
+      const intersects = raycaster.intersectObjects(scene.children, true);
       for (const hit of intersects) {
         if (!(hit.object instanceof THREE.Mesh)) continue;
         if (hit.object === meshRef.current || hit.object === instancedMeshRef.current || hit.object === previewMeshRef.current) continue;
 
         if (hit.face) {
+          bestDist = hit.distance;
           hitNormal.copy(hit.face.normal);
-
           buildPos.copy(hit.point).add(hit.face.normal.clone().multiplyScalar(0.5));
           buildPos.x = Math.round(buildPos.x);
           buildPos.y = Math.round(buildPos.y);
@@ -247,32 +292,49 @@ export default function EditorCursor() {
           erasePos.x = Math.round(erasePos.x);
           erasePos.y = Math.round(erasePos.y);
           erasePos.z = Math.round(erasePos.z);
-
-          found = true;
+          foundType = 'block';
           break;
         }
       }
 
-      if (!found) {
-        // Try intersecting with the ground plane (Y=0) first to build floors
-        let hitGround = raycaster.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), buildPos);
-        if (hitGround) {
-          buildPos.x = Math.round(buildPos.x);
-          buildPos.y = 0;
-          buildPos.z = Math.round(buildPos.z);
+      const rayDirection = raycaster.ray.direction;
+      const rayOrigin = raycaster.ray.origin;
+
+      // 2. Raycast Z-Plane (buildDepth grid)
+      // Equation: rayOrigin.z + t * rayDirection.z = state.buildDepth
+      if (Math.abs(rayDirection.z) > 1e-6) {
+        const tZ = (state.buildDepth - rayOrigin.z) / rayDirection.z;
+        if (tZ >= 0 && tZ < bestDist) {
+          bestDist = tZ;
+          const pt = rayOrigin.clone().add(rayDirection.clone().multiplyScalar(tZ));
+          buildPos.x = Math.round(pt.x);
+          buildPos.y = Math.round(pt.y);
+          buildPos.z = state.buildDepth;
+          erasePos.copy(buildPos);
+          hitNormal.set(0, 0, 1);
+          foundType = 'z-plane';
+        }
+      }
+
+      // 3. Raycast Y-Plane (Ground floor grid at Y=-0.5)
+      // Equation: rayOrigin.y + t * rayDirection.y = -0.5
+      if (Math.abs(rayDirection.y) > 1e-6) {
+        const tY = (-0.5 - rayOrigin.y) / rayDirection.y;
+        if (tY >= 0 && tY < bestDist) {
+          bestDist = tY;
+          const pt = rayOrigin.clone().add(rayDirection.clone().multiplyScalar(tY));
+          buildPos.x = Math.round(pt.x);
+          buildPos.y = 0; // The block rests at Y=0 on the floor
+          buildPos.z = Math.round(pt.z);
           erasePos.copy(buildPos);
           hitNormal.set(0, 1, 0);
-        } else {
-          // Fallback to Z=0 plane if looking perfectly horizontal
-          let hitWall = raycaster.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 0, 1), 0), buildPos);
-          if (hitWall) {
-            buildPos.x = Math.round(buildPos.x);
-            buildPos.y = Math.round(buildPos.y);
-            buildPos.z = 0;
-            erasePos.copy(buildPos);
-            hitNormal.set(0, 0, 1);
-          }
+          foundType = 'y-plane';
         }
+      }
+
+      if (foundType === 'none') {
+        buildPos.copy(currentActivePosRef.current);
+        erasePos.copy(currentActivePosRef.current);
       }
 
       activePos = useErasePos ? erasePos : buildPos;
