@@ -55,14 +55,16 @@ export default function Spike({ position }: { position: [number, number, number]
             }}
         >
             <group position={[0, -0.5, 0]}>
-                {dimension === '2D' ? (
-                    // 2D Pixel Art Spike Sprite
+                {/* Both variants always mounted — toggle visibility */}
+                <group visible={dimension === '2D'}>
+                    {/* 2D Pixel Art Spike Sprite */}
                     <mesh position={[0, 0.5, 0]}>
                         <planeGeometry args={[1, 1]} />
                         <meshBasicMaterial map={spikeTexture} transparent={true} side={THREE.DoubleSide} alphaTest={0.5} />
                     </mesh>
-                ) : (
-                    // 3D Arcade Spike (Base + 4 Cones)
+                </group>
+                <group visible={dimension === '3D'}>
+                    {/* 3D Arcade Spike (Base + 4 Cones) */}
                     <group position={[0, 0.5, 0]}>
                         {/* Base métallique carrée */}
                         <mesh position={[0, -0.4, 0]}>
@@ -82,7 +84,7 @@ export default function Spike({ position }: { position: [number, number, number]
                         {/* Petite lumière interne anti-nuit */}
                         <pointLight position={[0, 0.5, 0]} intensity={2} distance={2} color="#ffffff" decay={2} />
                     </group>
-                )}
+                </group>
             </group>
         </RigidBody>
     );

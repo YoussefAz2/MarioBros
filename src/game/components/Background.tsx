@@ -108,9 +108,11 @@ export default function Background() {
 
     return (
         <group>
-            {dimension === '3D' ? (
+            {/* Both backgrounds always mounted — toggle visibility to avoid freeze on first dimension switch */}
+            <group visible={dimension === '3D'}>
                 <GradientSky3D />
-            ) : (
+            </group>
+            <group visible={dimension === '2D'}>
                 <group ref={parallaxRef} position={[0, 0, -20]}>
                     <Points ref={starsRef} positions={starPositions}>
                         <pointsMaterial size={1.0} color="#ffffff" transparent opacity={1} sizeAttenuation />
@@ -122,7 +124,7 @@ export default function Background() {
                         <meshBasicMaterial color="#0b001a" transparent opacity={0.9} />
                     </mesh>
                 </group>
-            )}
+            </group>
         </group>
     );
 }

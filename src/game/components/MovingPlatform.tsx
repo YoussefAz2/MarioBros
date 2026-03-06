@@ -74,7 +74,8 @@ export default function MovingPlatform({ position }: { position: [number, number
             name="platform"
         >
             <group position={[0, -0.25, 0]}>
-                {dimension === '2D' ? (
+                {/* Both variants always mounted — toggle visibility */}
+                <group visible={dimension === '2D'}>
                     <mesh position={[0, 0, 0]}>
                         <boxGeometry args={[2, 0.5, 1]} />
                         <meshBasicMaterial color="#888888" />
@@ -87,12 +88,13 @@ export default function MovingPlatform({ position }: { position: [number, number
                             <meshBasicMaterial color="#444444" />
                         </mesh>
                     </mesh>
-                ) : (
+                </group>
+                <group visible={dimension === '3D'}>
                     <mesh position={[0, 0, 0]}>
                         <boxGeometry args={[2, 0.5, 1]} />
                         <meshStandardMaterial color="#888888" metalness={0.5} roughness={0.5} />
                     </mesh>
-                )}
+                </group>
             </group>
         </RigidBody>
     );

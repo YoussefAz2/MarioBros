@@ -53,8 +53,9 @@ export default function Lamp({ id, position }: { id?: string; position: [number,
 
     return (
         <group position={position}>
-            {dimension === '3D' ? (
-                // Rendu 3D : Modèle de torche/lampe + PointLight
+            {/* Both variants always mounted — toggle visibility */}
+            <group visible={dimension === '3D'}>
+                {/* Rendu 3D : Modèle de torche/lampe + PointLight */}
                 <group>
                     {/* Poteau */}
                     <mesh position={[0, -0.2, 0]}>
@@ -75,8 +76,9 @@ export default function Lamp({ id, position }: { id?: string; position: [number,
                     {/* Vraie Lumière Dynamique pour la 3D */}
                     <pointLight position={[0, 0.2, 0]} color="#ffaa00" intensity={5} distance={10} decay={2} castShadow />
                 </group>
-            ) : (
-                // Rendu 2D : Sprite/Pixel + Halo Additif pour simuler l'éclairage de nuit
+            </group>
+            <group visible={dimension === '2D'}>
+                {/* Rendu 2D : Sprite/Pixel + Halo Additif */}
                 <group>
                     {/* Sprite Pixel Art de la Torche */}
                     <mesh position={[0, 0, 0]}>
@@ -95,7 +97,7 @@ export default function Lamp({ id, position }: { id?: string; position: [number,
                         />
                     </mesh>
                 </group>
-            )}
+            </group>
         </group>
     );
 }

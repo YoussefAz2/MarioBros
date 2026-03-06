@@ -189,11 +189,13 @@ export default function Enemy({ id, position }: { id?: string, position: [number
     >
       <CapsuleCollider args={[0.2, dead ? 0.05 : 0.3]} />
       <group position={[0, -0.1, 0]} scale={[1, squashScale.current, 1]}>
-        {dimension === '2D' ? (
+        {/* Both models always mounted — toggle visibility to avoid freeze on dimension switch */}
+        <group visible={dimension === '2D'}>
           <Sprite2D matrix={GOOMBA_MATRIX} palette={GOOMBA_PALETTE} facingRight={facingRight} />
-        ) : (
+        </group>
+        <group visible={dimension === '3D'}>
           <Goomba3D walking={isWalking} facingRight={facingRight} />
-        )}
+        </group>
       </group>
     </RigidBody>
   );
