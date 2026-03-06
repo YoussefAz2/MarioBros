@@ -8,6 +8,7 @@ import EditMapModal from './EditMapModal';
 export default function Marketplace() {
   const [maps, setMaps] = useState<MapData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [editingMap, setEditingMap] = useState<MapData | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [mapToDelete, setMapToDelete] = useState<number | string | null>(null);
@@ -20,8 +21,13 @@ export default function Marketplace() {
   }, []);
 
   const fetchMaps = async () => {
+    setLoading(true);
+    setError(null);
     try {
-      const data = await dbService.getMaps();
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('timeout')), 10000)
+      );
+      const data = await Promise.race([dbService.getMaps(), timeoutPromise]);
       // Masquer les niveaux de base du marketplace
       const visibleMaps = data.filter(m =>
         m.is_published !== false &&
@@ -31,6 +37,7 @@ export default function Marketplace() {
       setMaps(visibleMaps);
     } catch (err) {
       console.error("Failed to fetch maps", err);
+      setError("Impossible de charger les maps. Vérifie ta connexion internet et réessaie.");
     } finally {
       setLoading(false);
     }
@@ -142,6 +149,20 @@ export default function Marketplace() {
         {loading ? (
           <div className="flex justify-center items-center h-full">
             <div className="animate-spin w-12 h-12 border-4 border-[#049CD8] border-t-transparent rounded-full"></div>
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center h-full text-white/70">
+            <div className="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center mb-6">
+              <AlertTriangle className="w-10 h-10 text-red-400" />
+            </div>
+            <p className="text-xl mb-2 font-bold text-white">Connexion échouée</p>
+            <p className="text-white/50 mb-8 text-center max-w-md">{error}</p>
+            <button
+              onClick={fetchMaps}
+              className="px-8 py-3 bg-[#049CD8] hover:bg-[#037bb0] text-white rounded-xl font-bold transition-all shadow-lg hover:scale-105"
+            >
+              🔄 Réessayer
+            </button>
           </div>
         ) : maps.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-white/50">
