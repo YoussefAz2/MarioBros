@@ -51,6 +51,11 @@ export default function Player() {
     }
   }, [resetKey]);
 
+  // Pre-allocate ray objects to avoid GC pressure (reused every frame)
+  const rayRef = useRef<any>(null);
+  const rayOriginRef = useRef({ x: 0, y: 0, z: 0 });
+  const rayDirRef = useRef({ x: 0, y: -1, z: 0 });
+
   useFrame(() => {
     if (!body.current) return;
 
@@ -66,7 +71,7 @@ export default function Player() {
     // Handle falling off the map
     if (pos.y < -20) {
       playDie();
-      useGameStore.getState().resetLevel(); // Assuming handleDeath() is resetLevel()
+      useGameStore.getState().resetLevel();
       return;
     }
 
@@ -107,12 +112,13 @@ export default function Player() {
     targetX = THREE.MathUtils.clamp(targetX, -maxSpeed, maxSpeed);
     targetZ = THREE.MathUtils.clamp(targetZ, -maxSpeed, maxSpeed);
 
-    // Robust Grounded Check using Raycast (Ignorer les sensors comme le Rift)
-    const rayOrigin = { x: pos.x, y: pos.y - 0.61, z: pos.z };
-    const rayDir = { x: 0, y: -1, z: 0 };
-    const ray = new rapier.Ray(rayOrigin, rayDir);
-    // Le 3eme argument true = `solid`, le callback filter permet d'ignorer les colliders "sensor"
-    const hit = world.castRay(ray, 0.1, true, undefined, undefined, undefined, undefined, (collider) => !collider.isSensor());
+    // Robust Grounded Check using Raycast — reuse ray to avoid per-frame allocation
+    rayOriginRef.current.x = pos.x;
+    rayOriginRef.current.y = pos.y - 0.61;
+    rayOriginRef.current.z = pos.z;
+    if (!rayRef.current) rayRef.current = new rapier.Ray(rayOriginRef.current, rayDirRef.current);
+    else { rayRef.current.origin = rayOriginRef.current; rayRef.current.dir = rayDirRef.current; }
+    const hit = world.castRay(rayRef.current, 0.1, true, undefined, undefined, undefined, undefined, (collider) => !collider.isSensor());
     const isGrounded = hit != null;
 
     // Jump Logic (Adjusted jump height to 14.3)

@@ -42,11 +42,11 @@ function GradientSky3D() {
     return (
         <group>
             {/* Étoiles Premium du ciel 3D */}
-            <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={2} />
+            <Stars radius={100} depth={50} count={1500} factor={4} saturation={0} fade speed={2} />
 
             {/* Dôme du ciel avec shader de dégradé vertical */}
             <mesh>
-                <sphereGeometry args={[500, 32, 32]} />
+                <sphereGeometry args={[500, 16, 16]} />
                 <shaderMaterial
                     side={THREE.BackSide}
                     uniforms={uniforms}

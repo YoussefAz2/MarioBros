@@ -12,6 +12,8 @@ interface BlockProps {
   type?: BlockType;
 }
 
+const ZERO_VECTOR = new THREE.Vector3(0, 0, 0); // Preallocated for lerp
+
 export default function Block({ id, position, type = 'brick' }: BlockProps) {
   const brickTex = useMemo(() => createBrickTexture(), []);
   const questionTex = useMemo(() => createQuestionTexture(), []);
@@ -63,7 +65,7 @@ export default function Block({ id, position, type = 'brick' }: BlockProps) {
         frag.rotation.y += delta * 15;
 
         // Shrink
-        frag.scale.lerp(new THREE.Vector3(0, 0, 0), 0.1);
+        frag.scale.lerp(ZERO_VECTOR, 0.1);
       });
     } else if (hit && !breaking && meshRef.current) {
       // Visual bump when hit

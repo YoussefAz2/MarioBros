@@ -17,11 +17,18 @@ export default function MovingPlatform({ position }: { position: [number, number
     const range = 2.5;
     const speed = 2;
 
+    // Pre-allocated objects for ray casting (reused every frame)
+    const rayRef = useRef<any>(null);
+    const rayOriginVec = useRef(new THREE.Vector3());
+    const rayDirVec = useRef(new THREE.Vector3());
+    const tempVec = useRef(new THREE.Vector3());
+
     useFrame((_, delta) => {
         if (!body.current) return;
 
         if (useGameStore.getState().gameState === 'EDITOR') {
-            body.current.setTranslation(new THREE.Vector3(...position), true);
+            tempVec.current.set(...position);
+            body.current.setTranslation(tempVec.current, true);
             body.current.setLinvel({ x: 0, y: 0, z: 0 }, true);
             return;
         }
@@ -34,11 +41,12 @@ export default function MovingPlatform({ position }: { position: [number, number
         if (currentPos.x > startX + 15 && direction.current === 1) direction.current = -1;
         if (currentPos.x < startX - 15 && direction.current === -1) direction.current = 1;
 
-        // Raycast to detect obstacles
-        const rayOrigin = new THREE.Vector3(currentPos.x + (direction.current * 1.1), currentPos.y, currentPos.z);
-        const rayDirection = new THREE.Vector3(direction.current, 0, 0);
-        const ray = new rapier.Ray(rayOrigin, rayDirection);
-        const hit = world.castRay(ray, 0.2, true); // Ray length 0.2
+        // Raycast to detect obstacles — reuse objects to avoid per-frame allocation
+        rayOriginVec.current.set(currentPos.x + (direction.current * 1.1), currentPos.y, currentPos.z);
+        rayDirVec.current.set(direction.current, 0, 0);
+        if (!rayRef.current) rayRef.current = new rapier.Ray(rayOriginVec.current, rayDirVec.current);
+        else { rayRef.current.origin = rayOriginVec.current; rayRef.current.dir = rayDirVec.current; }
+        const hit = world.castRay(rayRef.current, 0.2, true);
 
         if (hit && hit.collider) {
             const hitObj = hit.collider.parent();

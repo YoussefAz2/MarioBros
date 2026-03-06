@@ -25,9 +25,16 @@ export default function Enemy({ id, position }: { id?: string, position: [number
   const lastX = useRef(position[0]);
   const squashScale = useRef(1);
 
+  // Pre-allocated objects for ray casting (reused every frame)
+  const rayRef = useRef<any>(null);
+  const rayOriginObj = useRef({ x: 0, y: 0, z: 0 });
+  const rayDirObj = useRef({ x: -1, y: 0, z: 0 });
+  const tempVec = useRef(new THREE.Vector3());
+
   useEffect(() => {
     if (!body.current) return;
-    body.current.setTranslation(new THREE.Vector3(...position), true);
+    tempVec.current.set(...position);
+    body.current.setTranslation(tempVec.current, true);
     body.current.setLinvel({ x: 0, y: 0, z: 0 }, true);
     dirRef.current = -1;
     lastX.current = position[0];
@@ -47,7 +54,8 @@ export default function Enemy({ id, position }: { id?: string, position: [number
     if (gameState === 'EDITOR') {
       body.current.setGravityScale(0, false);
       body.current.setLinvel({ x: 0, y: 0, z: 0 }, true);
-      body.current.setTranslation(new THREE.Vector3(...position), true);
+      tempVec.current.set(...position);
+      body.current.setTranslation(tempVec.current, true);
       return;
     }
 
@@ -70,12 +78,14 @@ export default function Enemy({ id, position }: { id?: string, position: [number
       return;
     }
 
-    // ── WALL DETECTION via RAYCAST ──
-    // Cast a short ray in the walking direction to detect walls
-    const rayOrigin = { x: pos.x, y: pos.y, z: pos.z };
-    const rayDir = { x: dirRef.current, y: 0, z: 0 };
-    const ray = new rapier.Ray(rayOrigin, rayDir);
-    const hit = world.castRay(ray, 0.55, true, undefined, undefined, undefined, body.current);
+    // ── WALL DETECTION via RAYCAST — reuse ray to avoid per-frame allocation ──
+    rayOriginObj.current.x = pos.x;
+    rayOriginObj.current.y = pos.y;
+    rayOriginObj.current.z = pos.z;
+    rayDirObj.current.x = dirRef.current;
+    if (!rayRef.current) rayRef.current = new rapier.Ray(rayOriginObj.current, rayDirObj.current);
+    else { rayRef.current.origin = rayOriginObj.current; rayRef.current.dir = rayDirObj.current; }
+    const hit = world.castRay(rayRef.current, 0.55, true, undefined, undefined, undefined, body.current);
 
     if (hit != null) {
       // Check if the raycast hit the player

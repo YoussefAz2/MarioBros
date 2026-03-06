@@ -50,7 +50,7 @@ export default function App() {
               position={[100, 20, 100]}
               castShadow
               intensity={0.6}
-              shadow-mapSize={[2048, 2048]}
+              shadow-mapSize={[1024, 1024]}
             >
               <orthographicCamera attach="shadow-camera" args={[-30, 30, 30, -30, 0.1, 100]} />
             </directionalLight>

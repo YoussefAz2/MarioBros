@@ -23,6 +23,14 @@ export default function CameraController() {
   const orbitControlsRef = useRef<any>(null);
   const [isAltDown, setIsAltDown] = useState(false);
 
+  // Pre-allocated temp vectors (reused every frame to avoid GC)
+  const _tempTarget = useRef(new THREE.Vector3());
+  const _tempLookAt = useRef(new THREE.Vector3());
+  const _forwardDir = useRef(new THREE.Vector3());
+  const _rightDir = useRef(new THREE.Vector3());
+  const _move = useRef(new THREE.Vector3());
+  const _upVec = useRef(new THREE.Vector3(0, 1, 0));
+
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => { if (e.key === 'Alt') setIsAltDown(true); };
     const onKeyUp = (e: KeyboardEvent) => { if (e.key === 'Alt') setIsAltDown(false); };
@@ -98,29 +106,29 @@ export default function CameraController() {
         const { forward, backward, left, right, jump, down } = get() as any;
         const speed = 20 * delta;
 
-        const forwardDir = new THREE.Vector3();
-        camera.getWorldDirection(forwardDir);
-        forwardDir.y = 0;
-        forwardDir.normalize();
+        _forwardDir.current.set(0, 0, 0);
+        camera.getWorldDirection(_forwardDir.current);
+        _forwardDir.current.y = 0;
+        _forwardDir.current.normalize();
 
-        const rightDir = new THREE.Vector3().crossVectors(forwardDir, new THREE.Vector3(0, 1, 0)).normalize();
+        _rightDir.current.crossVectors(_forwardDir.current, _upVec.current).normalize();
 
-        const move = new THREE.Vector3();
-        if (forward) move.add(forwardDir.clone().multiplyScalar(speed));
-        if (backward) move.add(forwardDir.clone().multiplyScalar(-speed));
-        if (left) move.add(rightDir.clone().multiplyScalar(-speed));
-        if (right) move.add(rightDir.clone().multiplyScalar(speed));
-        if (jump) move.y += speed;
-        if (down) move.y -= speed;
+        _move.current.set(0, 0, 0);
+        if (forward) _move.current.addScaledVector(_forwardDir.current, speed);
+        if (backward) _move.current.addScaledVector(_forwardDir.current, -speed);
+        if (left) _move.current.addScaledVector(_rightDir.current, -speed);
+        if (right) _move.current.addScaledVector(_rightDir.current, speed);
+        if (jump) _move.current.y += speed;
+        if (down) _move.current.y -= speed;
 
-        if (move.lengthSq() > 0) {
-          orbitControlsRef.current.target.add(move);
-          camera.position.add(move);
+        if (_move.current.lengthSq() > 0) {
+          orbitControlsRef.current.target.add(_move.current);
+          camera.position.add(_move.current);
         }
 
         orbitControlsRef.current.update();
       }
-      return; // Skip the PLAYING camera logic
+      return;
     }
 
     // PLAYING mode logic
@@ -140,9 +148,11 @@ export default function CameraController() {
     perspCamera.current.updateProjectionMatrix();
 
     if (dimension === '2D') {
-      // Strict 2D Orthographic tracking
-      currentPos.current.lerp(new THREE.Vector3(targetX, targetY, 15), 0.1);
-      lookAtTarget.current.lerp(new THREE.Vector3(targetX, targetY, 0), 0.1);
+      // Strict 2D Orthographic tracking — reuse temp vectors
+      _tempTarget.current.set(targetX, targetY, 15);
+      currentPos.current.lerp(_tempTarget.current, 0.1);
+      _tempLookAt.current.set(targetX, targetY, 0);
+      lookAtTarget.current.lerp(_tempLookAt.current, 0.1);
 
       orthoCamera.current.position.copy(currentPos.current);
 
@@ -155,19 +165,19 @@ export default function CameraController() {
       const distance = 12;
       const height = 6;
 
-      const tPos = new THREE.Vector3(targetX, targetY + height, targetZ + distance);
-      const tLookAt = new THREE.Vector3(targetX, targetY, targetZ);
+      _tempTarget.current.set(targetX, targetY + height, targetZ + distance);
+      _tempLookAt.current.set(targetX, targetY, targetZ);
 
       // Apply transition swoop and dimension shift shake
       if (isTransitioning) {
-        tPos.y += Math.sin(transitionSpin.current) * 5;
-        tPos.x += Math.cos(transitionSpin.current) * 5;
-        tLookAt.x += (Math.random() - 0.5) * 2;
-        tLookAt.y += (Math.random() - 0.5) * 2;
+        _tempTarget.current.y += Math.sin(transitionSpin.current) * 5;
+        _tempTarget.current.x += Math.cos(transitionSpin.current) * 5;
+        _tempLookAt.current.x += (Math.random() - 0.5) * 2;
+        _tempLookAt.current.y += (Math.random() - 0.5) * 2;
       }
 
-      currentPos.current.lerp(tPos, 0.08);
-      lookAtTarget.current.lerp(tLookAt, 0.1);
+      currentPos.current.lerp(_tempTarget.current, 0.08);
+      lookAtTarget.current.lerp(_tempLookAt.current, 0.1);
 
       perspCamera.current.position.copy(currentPos.current);
 

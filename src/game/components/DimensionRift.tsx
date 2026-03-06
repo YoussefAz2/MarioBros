@@ -5,6 +5,8 @@ import { useGameStore } from '../../store/useGameStore';
 import * as THREE from 'three';
 import { playDimension } from '../../utils/audio';
 
+const COOLDOWN_SCALE = new THREE.Vector3(0.5, 0.5, 0.5); // Preallocated for lerp
+
 export default function DimensionRift({ id, position }: { id?: string, position: [number, number, number] }) {
   const meshRef = useRef<THREE.Mesh>(null);
   const toggleDimension = useGameStore(s => s.toggleDimension);
@@ -27,7 +29,7 @@ export default function DimensionRift({ id, position }: { id?: string, position:
         meshRef.current.scale.set(scale, scale, scale);
       } else {
         // Shrink during cooldown
-        meshRef.current.scale.lerp(new THREE.Vector3(0.5, 0.5, 0.5), 0.1);
+        meshRef.current.scale.lerp(COOLDOWN_SCALE, 0.1);
       }
     }
   });
