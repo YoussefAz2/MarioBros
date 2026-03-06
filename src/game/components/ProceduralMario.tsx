@@ -207,7 +207,7 @@ export default function ProceduralMario({ walkingRef }: ProceduralMarioProps) {
 
                     {/* Red shirt (slimmer belly) */}
                     <mesh {...sm} position={[0, 0.05, 0]}>
-                        <sphereGeometry args={[0.22, 24, 24]} />
+                        <sphereGeometry args={[0.22, 16, 16]} />
                         {M('#db2020', 0.8)}
                     </mesh>
 
@@ -224,7 +224,7 @@ export default function ProceduralMario({ walkingRef }: ProceduralMarioProps) {
 
                     {/* Overall bottom half */}
                     <mesh {...sm} position={[0, -0.1, 0]}>
-                        <sphereGeometry args={[0.21, 24, 24, 0, Math.PI * 2, Math.PI * 0.48, Math.PI * 0.52]} />
+                        <sphereGeometry args={[0.21, 16, 16, 0, Math.PI * 2, Math.PI * 0.48, Math.PI * 0.52]} />
                         {M('#1e48d4', 0.9)}
                     </mesh>
 
@@ -288,7 +288,7 @@ export default function ProceduralMario({ walkingRef }: ProceduralMarioProps) {
 
                         {/* Head base — plain skin sphere, NO canvas texture */}
                         <mesh {...sm}>
-                            <sphereGeometry args={[0.255, 32, 32]} />
+                            <sphereGeometry args={[0.255, 20, 20]} />
                             {M('#fecc8c', 0.65)}
                         </mesh>
 
@@ -387,12 +387,12 @@ export default function ProceduralMario({ walkingRef }: ProceduralMarioProps) {
                         {/* ── HAT ── */}
                         {/* Hat dome */}
                         <mesh {...sm} position={[0, 0.15, 0]} scale={[1.0, 0.82, 1.0]}>
-                            <sphereGeometry args={[0.29, 24, 24, 0, Math.PI * 2, 0, Math.PI * 0.55]} />
+                            <sphereGeometry args={[0.29, 16, 16, 0, Math.PI * 2, 0, Math.PI * 0.55]} />
                             {M('#d82020', 0.72)}
                         </mesh>
                         {/* Hat brim (disc) */}
                         <mesh {...sm} position={[0, 0.13, 0.05]} rotation={[0.05, 0, 0]}>
-                            <cylinderGeometry args={[0.28, 0.28, 0.052, 24]} />
+                            <cylinderGeometry args={[0.28, 0.28, 0.052, 16]} />
                             {M('#cc1a1a', 0.72)}
                         </mesh>
                         {/* Extended brim to front */}

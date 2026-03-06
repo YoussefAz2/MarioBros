@@ -31,11 +31,11 @@ export default function SpawnPoint({ id, position }: SpawnPointProps) {
             {/* Base "Start Plateau" */}
             <group ref={boxRef} position={[0, -0.4, 0]}>
                 <mesh position={[0, 0, 0]}>
-                    <cylinderGeometry args={[0.45, 0.45, 0.2, 32]} />
+                    <cylinderGeometry args={[0.45, 0.45, 0.2, 12]} />
                     <meshStandardMaterial color="#333333" />
                 </mesh>
                 <mesh position={[0, 0.11, 0]}>
-                    <cylinderGeometry args={[0.4, 0.4, 0.05, 32]} />
+                    <cylinderGeometry args={[0.4, 0.4, 0.05, 12]} />
                     <meshStandardMaterial color="#4ade80" emissive="#16a34a" emissiveIntensity={0.5} />
                 </mesh>
             </group>
