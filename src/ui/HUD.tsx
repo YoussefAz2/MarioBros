@@ -345,15 +345,15 @@ export default function HUD() {
   }
 
   return (
-    <div className="absolute top-0 left-0 w-full h-full pointer-events-none flex flex-col justify-between z-10 text-white drop-shadow-[2px_2px_0_#000] font-sans">
+    <div className="absolute top-0 left-0 w-full h-full pointer-events-none flex flex-col justify-between z-10 text-white font-sans">
       <div className="p-6 flex justify-between items-start">
         <div className="flex gap-4 md:gap-8">
-          <div className={`bg-black/50 backdrop-blur-md px-6 py-3 rounded-2xl border-2 border-white/20 shadow-[0_4px_30px_rgba(0,0,0,0.5)] transition-transform duration-150 ${scoreBlink ? 'scale-125 border-[#FBD000] shadow-[0_0_20px_#FBD000]' : 'scale-100'}`}>
-            <p className="text-white/70 text-xs font-bold uppercase tracking-wider mb-1 flex items-center gap-1"><Trophy className="w-3 h-3 text-[#FBD000]" /> Score</p>
-            <p className="text-white font-black text-2xl" style={{ fontFamily: "'Press Start 2P', cursive" }}>{String(score).padStart(6, '0')}</p>
+          <div className={`bg-black/50 backdrop-blur-md px-6 py-3 rounded-2xl border-2 shadow-[0_4px_30px_rgba(0,0,0,0.5)] transition-colors duration-150 ${scoreBlink ? 'border-[#FBD000] shadow-[0_0_20px_#FBD000]' : 'border-white/20'}`}>
+            <p className="text-white/70 text-xs font-bold uppercase tracking-wider mb-1 flex items-center gap-1 drop-shadow-[2px_2px_0_#000]"><Trophy className="w-3 h-3 text-[#FBD000]" /> Score</p>
+            <p className="text-white font-black text-2xl drop-shadow-[2px_2px_0_#000]" style={{ fontFamily: "'Press Start 2P', cursive" }}>{String(score).padStart(6, '0')}</p>
           </div>
 
-          <div className={`bg-black/50 backdrop-blur-md px-6 py-3 rounded-2xl border-2 border-white/20 shadow-[0_4px_30px_rgba(0,0,0,0.5)] transition-transform duration-150 flex flex-col items-center justify-center ${coinBlink ? 'scale-125 border-[#FBD000] shadow-[0_0_20px_#FBD000]' : 'scale-100'}`}>
+          <div className={`bg-black/50 backdrop-blur-md px-6 py-3 rounded-2xl border-2 shadow-[0_4px_30px_rgba(0,0,0,0.5)] transition-colors duration-150 flex flex-col items-center justify-center ${coinBlink ? 'border-[#FBD000] shadow-[0_0_20px_#FBD000]' : 'border-white/20'}`}>
             <p className="text-[#FBD000] font-black text-2xl mb-1 flex items-center gap-2 drop-shadow-[2px_2px_0_#000]">
               <Coins className="w-6 h-6 animate-spin" style={{ animationDuration: '3s' }} /> x{String(coins).padStart(2, '0')}
             </p>
@@ -367,7 +367,7 @@ export default function HUD() {
               <Clock className="w-5 h-5" /> {formatTime(timeElapsed)}
             </p>
             <div className="px-3 py-1 rounded-full border-2 border-white/30 text-white/50 bg-black/80">
-              <p className="text-[10px] font-bold tracking-widest">TEMPS</p>
+              <p className="text-[10px] font-bold tracking-widest drop-shadow-[2px_2px_0_#000]">TEMPS</p>
             </div>
           </div>
         </div>
